@@ -5,7 +5,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 DEBUG = True
 
-SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:@localhost:3306/app-rrhh'
+SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:@localhost:3306/gestum_db'
 
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
