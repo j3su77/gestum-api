@@ -10,3 +10,4 @@ SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://root:@localhost:3306/gestum_db
 SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 SECRET_KEY = os.environ.get('SECRET_KEY') or 'default-secret-key'
+EXPIRE_TOKEN_TIME = os.environ.get('EXPIRE_TOKEN_TIME') or 60
