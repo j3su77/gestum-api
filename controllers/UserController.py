@@ -1,14 +1,19 @@
 from config import SECRET_KEY, EXPIRE_TOKEN_TIME
-from flask import abort, request, jsonify
+from flask import request, jsonify
 from utils.db import db
-from sqlalchemy.orm import joinedload
+from utils.serialize_enum import serialize_enum
+
 
 from models.User import User
+from models.Role import Role
+from models.UserDetails import UserDetails, Type
 
 
 import bcrypt
 
 # Verifica si ya existe un usuario con el correo o documento
+
+
 def check_user_exists(param_name, param_value, error_msg):
     user = User.query.filter_by(**{param_name: param_value}).first()
     if user:
@@ -70,19 +75,68 @@ def new_user():
 
 # ------------------- obtener usuarios ----------------------
 def get_users():
-    users = User.query.filter_by(activo=1).all()
+
+    query = request.args.get('type')
+
+    users = User.query.join(Role).filter_by(nombre=query).join(UserDetails).all()
+
     return jsonify([user.to_dict() for user in users])
 
 
 # ------------------- obtener usuario ----------------------
 def get_user(user_id):
+    # user = User.query.filter_by(id_usuario=user_id, activo=1).first()
+
     user = User.query.filter_by(id_usuario=user_id, activo=1).first()
+
     if not user:
         return jsonify({
             "msg": f"Usuario no registrado con ID: {user_id}"
         }), 400
 
-    return jsonify(user.to_dict())
+
+    detalles = user.usuario_detalles
+    direcciones = []
+    especialidades = []
+
+    
+    if detalles:
+        for detalle in detalles:
+            if detalle.tipo == Type.direccion:
+                direcciones.append(detalle.detalle)
+            else:
+                especialidades.append(detalle.detalle)
+        resp = {
+            "activo": user.activo,
+            "apellidos": user.apellidos,
+            "correo": user.correo,
+            "created_at": user.created_at,
+            "documento": user.documento,
+            "id_usuario": user.id_usuario,
+            "nombre": user.nombre,
+            "rol": user.roles.nombre,
+            "telefono": user.telefono,
+            "tipo_documento": serialize_enum(user.tipo_documento),
+            "direcciones": direcciones,
+            "especialidades": especialidades
+        }
+        return jsonify(resp)
+    else:
+        resp = {
+            "activo": user.activo,
+            "apellidos": user.apellidos,
+            "correo": user.correo,
+            "created_at": user.created_at,
+            "documento": user.documento,
+            "id_usuario": user.id_usuario,
+            "nombre": user.nombre,
+            "rol": user.roles.nombre,
+            "telefono": user.telefono,
+            "tipo_documento": serialize_enum(user.tipo_documento),
+            "direcciones": [],
+            "especialidades": []
+        }
+        return jsonify(resp)
 
 
 # ------------------- actualizar usuario ----------------------
@@ -97,15 +151,20 @@ def update_user(user_id):
     data = request.get_json()
     correo = data.get('correo')
     documento = data.get('documento')
+
+    # si el correo ingresado es diferente al que ya esta registrado verifica que no este registrado ya
     if correo and correo != user.correo:
-        user_with_email = User.query.filter_by(correo=correo, activo=1).filter(User.id_usuario != user_id).first()
+        user_with_email = User.query.filter_by(
+            correo=correo, activo=1).filter(User.id_usuario != user_id).first()
         if user_with_email:
             return jsonify({
                 "msg": f"El correo {correo} ya está registrado"
             }), 400
 
+    # si el documento ingresado es diferente al que ya esta registrado verifica que no este registrado
     if documento and documento != user.documento:
-        user_with_doc = User.query.filter_by(documento=documento, activo=1).filter(User.id_usuario != user_id).first()
+        user_with_doc = User.query.filter_by(documento=documento, activo=1).filter(
+            User.id_usuario != user_id).first()
         if user_with_doc:
             return jsonify({
                 "msg": f"El correo {documento} ya está registrado"
@@ -132,8 +191,13 @@ def change_password(user_id):
             "msg": f"Usuario no registrado con ID: {user_id}"
         }), 400
 
-    current_password = request.json.get('actual_contrasena')
-    new_password = request.json.get('nueva_contrasena')
+    current_password = request.json.get('current_password')
+    new_password = request.json.get('new_password')
+
+    if current_password == new_password:
+        return jsonify({
+            "msg": f"debe ingresar una contraseña diferente a la actual"
+        }), 400
 
     # notifica si la contraseña es válida
     passwordValid = bcrypt.checkpw(current_password.encode(
@@ -147,4 +211,4 @@ def change_password(user_id):
 
     db.session.commit()
 
-    return jsonify({'msg': 'Contraseña cambiada exitosamente'})
+    return jsonify({'msg': 'Contraseña cambiada satisfactoriamente'})

@@ -42,10 +42,11 @@ def login():
 
     # se crea el objeto con los datos relevantes para el token
     payload = {
-        'email': email,
-        'name': user[0].nombre,
-        'lastName': user[0].apellidos,
-        'role': str(user[1]),
+        'id_usuario': user[0].id_usuario,
+        'correo': email,
+        'nombre': user[0].nombre,
+        'apellidos': user[0].apellidos,
+        'rol': str(user[1]),
         'exp': expiration
     }
 

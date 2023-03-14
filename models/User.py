@@ -6,7 +6,7 @@ from models.Role import Role
 
 class TypeDoc(Enum):
     CC = 'CC'
-    TI = 'TI'
+    PA = 'PA'
     CE = 'CE'
 
 class User(db.Model):
@@ -38,16 +38,20 @@ class User(db.Model):
             'telefono': self.telefono,
             'rol': self.roles.nombre,
             'activo': self.activo,
-            'created_at': self.created_at.isoformat()
+            'created_at': self.created_at.isoformat(),
+            'detalles': [{'tipo': detalle.tipo.name, 'detalle': detalle.detalle} for detalle in self.usuario_detalles]
         }
 
 
     @validates('tipo_documento')
     def validate_tipo(self, key, value):
         if value not in [t.name for t in TypeDoc]:
-            raise ValueError('Tipo inválido')
+            raise ValueError('Tipo inválido!')
         return value
 
 
     def __repr__(self):
         return '<user %r>' % self.nombre
+
+
+
